@@ -1,0 +1,305 @@
+syntax = "proto3";
+
+package ext;
+
+import "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate/expression.proto";
+import "github.com/kralicky/codegen/cli/cli.proto";
+import "github.com/kralicky/codegen/pathbuilder/pathbuilder.proto";
+import "github.com/kralicky/protoconfig/apis/core/v1/core.proto";
+import "github.com/kralicky/protoconfig/server/types.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+
+option go_package      = "github.com/kralicky/protoconfig/test/ext";
+option (cli.generator) = {
+  enabled:                         true,
+  generate_flags_for_all_messages: true,
+};
+
+option (pathbuilder.generator).enabled = true;
+
+service Ext {
+  rpc Foo(FooRequest) returns (FooResponse) {
+    option (google.api.http) = {
+      post: "/foo",
+      body: "request",
+      additional_bindings: {
+        get: "/foo",
+      },
+      additional_bindings: {
+        put:  "/foo",
+        body: "request",
+      },
+      additional_bindings: {
+        delete: "/foo",
+      },
+      additional_bindings: {
+        patch: "/foo",
+        body:  "request",
+      },
+    };
+  }
+  rpc Bar(BarRequest) returns (BarResponse) {
+    option (google.api.http) = {
+      post: "/bar/{param1}/{param2}",
+      body: "param3",
+      additional_bindings: {
+        get: "/bar/{param1}/{param2}/{param3}",
+      },
+    };
+  }
+  rpc Baz(BazRequest) returns (BazRequest) {
+    option (google.api.http) = {
+      post: "/baz",
+      body: "*",
+      additional_bindings: {
+        post: "/baz/{paramMsg.paramBool}/{paramMsg.paramString}/{paramMsg.paramEnum}",
+        body: "*",
+      },
+      additional_bindings: {
+        post: "/baz/{paramMsg.paramMsg.paramMsg.paramMsg.paramString}",
+        body: "*",
+      },
+    };
+  }
+  rpc Set(SetRequest) returns (SetRequest) {
+    option (google.api.http) = {
+      put:  "/set/{node.id}",
+      body: "*",
+
+      additional_bindings: {
+        put:  "/set/example/{node.id}",
+        body: "example",
+      },
+    };
+  }
+  rpc ServerStream(FooRequest) returns (stream FooResponse);
+  rpc ClientStream(stream FooRequest) returns (FooResponse);
+  rpc BidirectionalStream(stream FooRequest) returns (stream FooResponse);
+}
+
+service Config {
+  rpc GetDefaultConfiguration(SampleGetRequest) returns (SampleConfiguration) {
+    option (cli.command) = {
+      use: "get-default",
+    };
+  }
+  rpc SetDefaultConfiguration(SampleSetRequest) returns (google.protobuf.Empty) {
+    option (cli.command) = {
+      use:         "set-default",
+      granularity: EditMessage,
+    };
+  }
+  rpc GetConfiguration(SampleGetRequest) returns (SampleConfiguration) {
+    option (cli.command) = {
+      use: "get",
+    };
+  }
+  rpc SetConfiguration(SampleSetRequest) returns (google.protobuf.Empty) {
+    option (cli.command) = {
+      use:         "set",
+      granularity: EditMessage,
+    };
+  }
+  rpc ResetDefaultConfiguration(google.protobuf.Empty) returns (google.protobuf.Empty) {
+    option (cli.command) = {
+      use: "reset-default",
+    };
+  }
+  rpc ResetConfiguration(SampleResetRequest) returns (google.protobuf.Empty) {
+    option (cli.command) = {
+      use:         "reset",
+      granularity: EditMessage,
+    };
+  }
+  rpc DryRun(SampleDryRunRequest) returns (SampleDryRunResponse) {
+    option (cli.command).skip = true;
+  }
+  rpc ConfigurationHistory(SampleHistoryRequest) returns (SampleConfigurationHistoryResponse) {
+    option (cli.command) = {
+      use: "history",
+    };
+  }
+}
+
+message Reference {
+  string id = 1;
+}
+
+message SetRequest {
+  Reference    node    = 1;
+  string       value   = 2;
+  ExampleValue example = 3;
+}
+
+message ExampleValue {
+  string value = 1;
+}
+
+service Ext2 {
+  rpc Foo(FooRequest) returns (FooResponse);
+}
+
+message FooRequest {
+  string request = 1;
+}
+
+message FooResponse {
+  string response = 1;
+}
+
+message BarRequest {
+  string param1 = 1;
+  string param2 = 2;
+  string param3 = 3;
+}
+
+message BarResponse {
+  string param1 = 1;
+  string param2 = 2;
+  string param3 = 3;
+}
+
+message BazRequest {
+  enum BazEnum {
+    UNKNOWN = 0;
+    FOO     = 1;
+    BAR     = 2;
+  }
+  double                   paramFloat64        = 1;
+  int64                    paramInt64          = 3;
+  bool                     paramBool           = 8;
+  string                   paramString         = 9;
+  bytes                    paramBytes          = 10;
+  BazEnum                  paramEnum           = 11;
+  google.protobuf.Duration paramDuration       = 12;
+  repeated string          paramRepeatedString = 13;
+  BazRequest               paramMsg            = 14;
+}
+
+message SampleConfiguration {
+  optional bool       enabled       = 1 [(cli.flag).skip = true];
+  core.Revision       revision      = 2;
+  optional string     stringField   = 3;
+  optional string     secretField   = 4 [(cli.flag).secret = true];
+  map<string, string> mapField      = 5;
+  repeated string     repeatedField = 6;
+  optional SampleEnum enumField     = 7;
+  SampleMessage       messageField  = 8;
+}
+
+enum SampleEnum {
+  Unknown = 0;
+  Foo     = 1;
+  Bar     = 2;
+}
+
+message SampleGetRequest {
+  optional string key = 10; // for context key tests
+
+  core.Revision revision = 1 [(cli.flag_set).no_prefix = true];
+}
+
+message SampleSetRequest {
+  optional string     key  = 10; // for context key tests
+  SampleConfiguration spec = 2;
+}
+
+message SampleDryRunRequest {
+  optional string key = 10; // for context key tests
+
+  server.Target target = 1;
+  server.Action action = 2;
+
+  SampleConfiguration spec = 3; // Set
+
+  core.Revision             revision = 4; // Reset
+  google.protobuf.FieldMask mask     = 5 [(cli.flag).skip = true]; // Reset
+  SampleConfiguration       patch    = 6 [(cli.flag).skip = true]; // Reset
+}
+
+message SampleDryRunResponse {
+  SampleConfiguration     current          = 1 [(cli.flag).skip = true];
+  SampleConfiguration     modified         = 2 [(cli.flag).skip = true];
+  buf.validate.Violations validationErrors = 3 [(cli.flag).skip = true];
+}
+
+message SampleHistoryRequest {
+  optional string key           = 10; // for context key tests
+  server.Target   target        = 1;
+  core.Revision   revision      = 2  [(cli.flag_set).no_prefix = true];
+  bool            includeValues = 3  [(cli.flag).default = "true"];
+}
+
+message SampleConfigurationHistoryResponse {
+  repeated SampleConfiguration entries = 1;
+}
+
+message SampleResetRequest {
+  optional string key = 10; // for context key tests
+
+  core.Revision             revision = 1 [(cli.flag_set).no_prefix = true];
+  google.protobuf.FieldMask mask     = 2 [(cli.flag).skip = true];
+  SampleConfiguration       patch    = 3 [(cli.flag).skip = true];
+}
+
+message SampleMessage {
+  Sample1FieldMsg field1 = 1;
+  Sample2FieldMsg field2 = 2;
+  Sample3FieldMsg field3 = 3;
+  Sample4FieldMsg field4 = 4;
+  Sample5FieldMsg field5 = 5;
+  Sample6FieldMsg field6 = 6;
+
+  SampleMessage2 msg = 7;
+}
+
+message SampleMessage2 {
+  Sample1FieldMsg field1 = 1;
+  Sample2FieldMsg field2 = 2;
+  Sample3FieldMsg field3 = 3;
+  Sample4FieldMsg field4 = 4;
+  Sample5FieldMsg field5 = 5;
+  Sample6FieldMsg field6 = 6;
+}
+
+message Sample1FieldMsg {
+  int32 field1 = 1;
+}
+
+message Sample2FieldMsg {
+  int32 field1 = 1;
+  int32 field2 = 2;
+}
+
+message Sample3FieldMsg {
+  int32 field1 = 1;
+  int32 field2 = 2;
+  int32 field3 = 3;
+}
+
+message Sample4FieldMsg {
+  int32 field1 = 1;
+  int32 field2 = 2;
+  int32 field3 = 3;
+  int32 field4 = 4;
+}
+
+message Sample5FieldMsg {
+  int32 field1 = 1;
+  int32 field2 = 2;
+  int32 field3 = 3;
+  int32 field4 = 4;
+  int32 field5 = 5;
+}
+
+message Sample6FieldMsg {
+  int32 field1 = 1;
+  int32 field2 = 2;
+  int32 field3 = 3;
+  int32 field4 = 4;
+  int32 field5 = 5;
+  int32 field6 = 6;
+}

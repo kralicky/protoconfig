@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package core;
+
+import "github.com/kralicky/codegen/cli/cli.proto";
+import "github.com/kralicky/protoconfig/apis/core/v1/value.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/kralicky/protoconfig/apis/core/v1;corev1";
+
+option (cli.generator) = {
+  enabled:                         true,
+  generate_flags_for_all_messages: true,
+};
+
+message Reference {
+  string id = 1;
+}
+
+message Revision {
+  // A numerical revision uniquely identifying a specific version of the resource.
+  // Larger values are newer, but this should otherwise be treated as opaque.
+  optional int64 revision = 1;
+  // An optional timestamp corresponding to the time the revision was created.
+  // Do not depend on this field being set; if it is, it is for informational
+  // purposes only.
+  google.protobuf.Timestamp timestamp = 2 [(cli.flag).skip = true];
+}
+
+message ReactiveWatchRequest {
+  // If true, uses [reactive.Bind] to watch all paths at once.
+  // If false, each path recieves updates separately.
+  bool bind = 1;
+
+  // List of paths to watch. These must be in fieldmask format.
+  // The path '.' refers to the entire object.
+  repeated string paths = 2;
+}
+
+message ReactiveEvents {
+  // In bind mode, this will contain one item for each path in the request,
+  // in order. Otherwise, this will only contain a single item.
+  repeated ReactiveEvent items = 1 [(cli.flag).skip = true];
+}
+
+message ReactiveEvent {
+  // The path that triggered this event, as an index into the request path list.
+  int32 index = 1;
+
+  core.Value value = 2 [(cli.flag).skip = true];
+}
