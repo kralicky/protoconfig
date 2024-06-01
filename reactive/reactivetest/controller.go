@@ -81,13 +81,13 @@ func InMemoryController[T config[T]](opts ...InMemoryControllerOption[T]) (*reac
 	}
 
 	if options.setDefault.ProtoReflect().IsValid() {
-		if err := tracker.SetDefaultConfig(ctx, options.setDefault); err != nil {
+		if err := tracker.SetDefault(ctx, options.setDefault); err != nil {
 			panic(err)
 		}
 	}
 
 	if options.setActive.ProtoReflect().IsValid() {
-		if err := tracker.ApplyConfig(ctx, options.setActive); err != nil {
+		if err := tracker.Apply(ctx, options.setActive); err != nil {
 			panic(err)
 		}
 	}

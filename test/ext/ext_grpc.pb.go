@@ -424,28 +424,28 @@ var Ext_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Config_GetDefaultConfiguration_FullMethodName   = "/ext.Config/GetDefaultConfiguration"
-	Config_SetDefaultConfiguration_FullMethodName   = "/ext.Config/SetDefaultConfiguration"
-	Config_GetConfiguration_FullMethodName          = "/ext.Config/GetConfiguration"
-	Config_SetConfiguration_FullMethodName          = "/ext.Config/SetConfiguration"
-	Config_ResetDefaultConfiguration_FullMethodName = "/ext.Config/ResetDefaultConfiguration"
-	Config_ResetConfiguration_FullMethodName        = "/ext.Config/ResetConfiguration"
-	Config_DryRun_FullMethodName                    = "/ext.Config/DryRun"
-	Config_ConfigurationHistory_FullMethodName      = "/ext.Config/ConfigurationHistory"
+	Config_GetDefault_FullMethodName   = "/ext.Config/GetDefault"
+	Config_SetDefault_FullMethodName   = "/ext.Config/SetDefault"
+	Config_Get_FullMethodName          = "/ext.Config/Get"
+	Config_Set_FullMethodName          = "/ext.Config/Set"
+	Config_ResetDefault_FullMethodName = "/ext.Config/ResetDefault"
+	Config_Reset_FullMethodName        = "/ext.Config/Reset"
+	Config_DryRun_FullMethodName       = "/ext.Config/DryRun"
+	Config_History_FullMethodName      = "/ext.Config/History"
 )
 
 // ConfigClient is the client API for Config service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ConfigClient interface {
-	GetDefaultConfiguration(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error)
-	SetDefaultConfiguration(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	GetConfiguration(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error)
-	SetConfiguration(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ResetDefaultConfiguration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ResetConfiguration(ctx context.Context, in *SampleResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetDefault(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error)
+	SetDefault(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Get(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error)
+	Set(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ResetDefault(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Reset(ctx context.Context, in *SampleResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DryRun(ctx context.Context, in *SampleDryRunRequest, opts ...grpc.CallOption) (*SampleDryRunResponse, error)
-	ConfigurationHistory(ctx context.Context, in *SampleHistoryRequest, opts ...grpc.CallOption) (*SampleConfigurationHistoryResponse, error)
+	History(ctx context.Context, in *SampleHistoryRequest, opts ...grpc.CallOption) (*SampleConfigurationHistoryResponse, error)
 }
 
 type configClient struct {
@@ -456,54 +456,54 @@ func NewConfigClient(cc grpc.ClientConnInterface) ConfigClient {
 	return &configClient{cc}
 }
 
-func (c *configClient) GetDefaultConfiguration(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error) {
+func (c *configClient) GetDefault(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error) {
 	out := new(SampleConfiguration)
-	err := c.cc.Invoke(ctx, Config_GetDefaultConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_GetDefault_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *configClient) SetDefaultConfiguration(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *configClient) SetDefault(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, Config_SetDefaultConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_SetDefault_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *configClient) GetConfiguration(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error) {
+func (c *configClient) Get(ctx context.Context, in *SampleGetRequest, opts ...grpc.CallOption) (*SampleConfiguration, error) {
 	out := new(SampleConfiguration)
-	err := c.cc.Invoke(ctx, Config_GetConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_Get_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *configClient) SetConfiguration(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *configClient) Set(ctx context.Context, in *SampleSetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, Config_SetConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_Set_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *configClient) ResetDefaultConfiguration(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *configClient) ResetDefault(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, Config_ResetDefaultConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_ResetDefault_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *configClient) ResetConfiguration(ctx context.Context, in *SampleResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *configClient) Reset(ctx context.Context, in *SampleResetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, Config_ResetConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_Reset_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -519,9 +519,9 @@ func (c *configClient) DryRun(ctx context.Context, in *SampleDryRunRequest, opts
 	return out, nil
 }
 
-func (c *configClient) ConfigurationHistory(ctx context.Context, in *SampleHistoryRequest, opts ...grpc.CallOption) (*SampleConfigurationHistoryResponse, error) {
+func (c *configClient) History(ctx context.Context, in *SampleHistoryRequest, opts ...grpc.CallOption) (*SampleConfigurationHistoryResponse, error) {
 	out := new(SampleConfigurationHistoryResponse)
-	err := c.cc.Invoke(ctx, Config_ConfigurationHistory_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Config_History_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -532,43 +532,43 @@ func (c *configClient) ConfigurationHistory(ctx context.Context, in *SampleHisto
 // All implementations should embed UnimplementedConfigServer
 // for forward compatibility
 type ConfigServer interface {
-	GetDefaultConfiguration(context.Context, *SampleGetRequest) (*SampleConfiguration, error)
-	SetDefaultConfiguration(context.Context, *SampleSetRequest) (*emptypb.Empty, error)
-	GetConfiguration(context.Context, *SampleGetRequest) (*SampleConfiguration, error)
-	SetConfiguration(context.Context, *SampleSetRequest) (*emptypb.Empty, error)
-	ResetDefaultConfiguration(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
-	ResetConfiguration(context.Context, *SampleResetRequest) (*emptypb.Empty, error)
+	GetDefault(context.Context, *SampleGetRequest) (*SampleConfiguration, error)
+	SetDefault(context.Context, *SampleSetRequest) (*emptypb.Empty, error)
+	Get(context.Context, *SampleGetRequest) (*SampleConfiguration, error)
+	Set(context.Context, *SampleSetRequest) (*emptypb.Empty, error)
+	ResetDefault(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	Reset(context.Context, *SampleResetRequest) (*emptypb.Empty, error)
 	DryRun(context.Context, *SampleDryRunRequest) (*SampleDryRunResponse, error)
-	ConfigurationHistory(context.Context, *SampleHistoryRequest) (*SampleConfigurationHistoryResponse, error)
+	History(context.Context, *SampleHistoryRequest) (*SampleConfigurationHistoryResponse, error)
 }
 
 // UnimplementedConfigServer should be embedded to have forward compatible implementations.
 type UnimplementedConfigServer struct {
 }
 
-func (UnimplementedConfigServer) GetDefaultConfiguration(context.Context, *SampleGetRequest) (*SampleConfiguration, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetDefaultConfiguration not implemented")
+func (UnimplementedConfigServer) GetDefault(context.Context, *SampleGetRequest) (*SampleConfiguration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDefault not implemented")
 }
-func (UnimplementedConfigServer) SetDefaultConfiguration(context.Context, *SampleSetRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetDefaultConfiguration not implemented")
+func (UnimplementedConfigServer) SetDefault(context.Context, *SampleSetRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetDefault not implemented")
 }
-func (UnimplementedConfigServer) GetConfiguration(context.Context, *SampleGetRequest) (*SampleConfiguration, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetConfiguration not implemented")
+func (UnimplementedConfigServer) Get(context.Context, *SampleGetRequest) (*SampleConfiguration, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedConfigServer) SetConfiguration(context.Context, *SampleSetRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetConfiguration not implemented")
+func (UnimplementedConfigServer) Set(context.Context, *SampleSetRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Set not implemented")
 }
-func (UnimplementedConfigServer) ResetDefaultConfiguration(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetDefaultConfiguration not implemented")
+func (UnimplementedConfigServer) ResetDefault(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResetDefault not implemented")
 }
-func (UnimplementedConfigServer) ResetConfiguration(context.Context, *SampleResetRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetConfiguration not implemented")
+func (UnimplementedConfigServer) Reset(context.Context, *SampleResetRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Reset not implemented")
 }
 func (UnimplementedConfigServer) DryRun(context.Context, *SampleDryRunRequest) (*SampleDryRunResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DryRun not implemented")
 }
-func (UnimplementedConfigServer) ConfigurationHistory(context.Context, *SampleHistoryRequest) (*SampleConfigurationHistoryResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ConfigurationHistory not implemented")
+func (UnimplementedConfigServer) History(context.Context, *SampleHistoryRequest) (*SampleConfigurationHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method History not implemented")
 }
 
 // UnsafeConfigServer may be embedded to opt out of forward compatibility for this service.
@@ -582,110 +582,110 @@ func RegisterConfigServer(s grpc.ServiceRegistrar, srv ConfigServer) {
 	s.RegisterService(&Config_ServiceDesc, srv)
 }
 
-func _Config_GetDefaultConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_GetDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SampleGetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).GetDefaultConfiguration(ctx, in)
+		return srv.(ConfigServer).GetDefault(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_GetDefaultConfiguration_FullMethodName,
+		FullMethod: Config_GetDefault_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).GetDefaultConfiguration(ctx, req.(*SampleGetRequest))
+		return srv.(ConfigServer).GetDefault(ctx, req.(*SampleGetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Config_SetDefaultConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_SetDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SampleSetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).SetDefaultConfiguration(ctx, in)
+		return srv.(ConfigServer).SetDefault(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_SetDefaultConfiguration_FullMethodName,
+		FullMethod: Config_SetDefault_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).SetDefaultConfiguration(ctx, req.(*SampleSetRequest))
+		return srv.(ConfigServer).SetDefault(ctx, req.(*SampleSetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Config_GetConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SampleGetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).GetConfiguration(ctx, in)
+		return srv.(ConfigServer).Get(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_GetConfiguration_FullMethodName,
+		FullMethod: Config_Get_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).GetConfiguration(ctx, req.(*SampleGetRequest))
+		return srv.(ConfigServer).Get(ctx, req.(*SampleGetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Config_SetConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_Set_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SampleSetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).SetConfiguration(ctx, in)
+		return srv.(ConfigServer).Set(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_SetConfiguration_FullMethodName,
+		FullMethod: Config_Set_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).SetConfiguration(ctx, req.(*SampleSetRequest))
+		return srv.(ConfigServer).Set(ctx, req.(*SampleSetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Config_ResetDefaultConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_ResetDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).ResetDefaultConfiguration(ctx, in)
+		return srv.(ConfigServer).ResetDefault(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_ResetDefaultConfiguration_FullMethodName,
+		FullMethod: Config_ResetDefault_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).ResetDefaultConfiguration(ctx, req.(*emptypb.Empty))
+		return srv.(ConfigServer).ResetDefault(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Config_ResetConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_Reset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SampleResetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).ResetConfiguration(ctx, in)
+		return srv.(ConfigServer).Reset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_ResetConfiguration_FullMethodName,
+		FullMethod: Config_Reset_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).ResetConfiguration(ctx, req.(*SampleResetRequest))
+		return srv.(ConfigServer).Reset(ctx, req.(*SampleResetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -708,20 +708,20 @@ func _Config_DryRun_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Config_ConfigurationHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Config_History_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SampleHistoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ConfigServer).ConfigurationHistory(ctx, in)
+		return srv.(ConfigServer).History(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Config_ConfigurationHistory_FullMethodName,
+		FullMethod: Config_History_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ConfigServer).ConfigurationHistory(ctx, req.(*SampleHistoryRequest))
+		return srv.(ConfigServer).History(ctx, req.(*SampleHistoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -734,36 +734,36 @@ var Config_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ConfigServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetDefaultConfiguration",
-			Handler:    _Config_GetDefaultConfiguration_Handler,
+			MethodName: "GetDefault",
+			Handler:    _Config_GetDefault_Handler,
 		},
 		{
-			MethodName: "SetDefaultConfiguration",
-			Handler:    _Config_SetDefaultConfiguration_Handler,
+			MethodName: "SetDefault",
+			Handler:    _Config_SetDefault_Handler,
 		},
 		{
-			MethodName: "GetConfiguration",
-			Handler:    _Config_GetConfiguration_Handler,
+			MethodName: "Get",
+			Handler:    _Config_Get_Handler,
 		},
 		{
-			MethodName: "SetConfiguration",
-			Handler:    _Config_SetConfiguration_Handler,
+			MethodName: "Set",
+			Handler:    _Config_Set_Handler,
 		},
 		{
-			MethodName: "ResetDefaultConfiguration",
-			Handler:    _Config_ResetDefaultConfiguration_Handler,
+			MethodName: "ResetDefault",
+			Handler:    _Config_ResetDefault_Handler,
 		},
 		{
-			MethodName: "ResetConfiguration",
-			Handler:    _Config_ResetConfiguration_Handler,
+			MethodName: "Reset",
+			Handler:    _Config_Reset_Handler,
 		},
 		{
 			MethodName: "DryRun",
 			Handler:    _Config_DryRun_Handler,
 		},
 		{
-			MethodName: "ConfigurationHistory",
-			Handler:    _Config_ConfigurationHistory_Handler,
+			MethodName: "History",
+			Handler:    _Config_History_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

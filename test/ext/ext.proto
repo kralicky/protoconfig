@@ -81,47 +81,28 @@ service Ext {
 }
 
 service Config {
-  rpc GetDefaultConfiguration(SampleGetRequest) returns (SampleConfiguration) {
+  rpc GetDefault(SampleGetRequest) returns (SampleConfiguration);
+  rpc SetDefault(SampleSetRequest) returns (google.protobuf.Empty) {
     option (cli.command) = {
-      use: "get-default",
-    };
-  }
-  rpc SetDefaultConfiguration(SampleSetRequest) returns (google.protobuf.Empty) {
-    option (cli.command) = {
-      use:         "set-default",
       granularity: EditMessage,
     };
   }
-  rpc GetConfiguration(SampleGetRequest) returns (SampleConfiguration) {
+  rpc Get(SampleGetRequest) returns (SampleConfiguration);
+  rpc Set(SampleSetRequest) returns (google.protobuf.Empty) {
     option (cli.command) = {
-      use: "get",
-    };
-  }
-  rpc SetConfiguration(SampleSetRequest) returns (google.protobuf.Empty) {
-    option (cli.command) = {
-      use:         "set",
       granularity: EditMessage,
     };
   }
-  rpc ResetDefaultConfiguration(google.protobuf.Empty) returns (google.protobuf.Empty) {
+  rpc ResetDefault(google.protobuf.Empty) returns (google.protobuf.Empty);
+  rpc Reset(SampleResetRequest) returns (google.protobuf.Empty) {
     option (cli.command) = {
-      use: "reset-default",
-    };
-  }
-  rpc ResetConfiguration(SampleResetRequest) returns (google.protobuf.Empty) {
-    option (cli.command) = {
-      use:         "reset",
       granularity: EditMessage,
     };
   }
   rpc DryRun(SampleDryRunRequest) returns (SampleDryRunResponse) {
     option (cli.command).skip = true;
   }
-  rpc ConfigurationHistory(SampleHistoryRequest) returns (SampleConfigurationHistoryResponse) {
-    option (cli.command) = {
-      use: "history",
-    };
-  }
+  rpc History(SampleHistoryRequest) returns (SampleConfigurationHistoryResponse);
 }
 
 message Reference {
@@ -180,7 +161,10 @@ message BazRequest {
 }
 
 message SampleConfiguration {
-  optional bool       enabled       = 1 [(cli.flag).skip = true];
+  optional bool enabled = 1 [
+    (cli.flag).skip = true,
+    (core.masked)   = true
+  ];
   core.Revision       revision      = 2;
   optional string     stringField   = 3;
   optional string     secretField   = 4 [(cli.flag).secret = true];

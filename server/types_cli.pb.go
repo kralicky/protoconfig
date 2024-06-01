@@ -20,10 +20,10 @@ func (in *GetRequest) FlagSet(prefix ...string) *pflag.FlagSet {
 	return fs
 }
 
-func (in *ConfigurationHistoryRequest) FlagSet(prefix ...string) *pflag.FlagSet {
-	fs := pflag.NewFlagSet("ConfigurationHistoryRequest", pflag.ExitOnError)
+func (in *HistoryRequest) FlagSet(prefix ...string) *pflag.FlagSet {
+	fs := pflag.NewFlagSet("HistoryRequest", pflag.ExitOnError)
 	fs.SortFlags = true
-	fs.Var(flagutil.EnumValue(Target_ActiveConfiguration, &in.Target), strings.Join(append(prefix, "target"), "."), "The configuration type to return history for.")
+	fs.Var(flagutil.EnumValue(Target_Active, &in.Target), strings.Join(append(prefix, "target"), "."), "The configuration type to return history for.")
 	if in.Revision == nil {
 		in.Revision = &v1.Revision{}
 	}

@@ -3,6 +3,8 @@ package corev1
 import (
 	"time"
 
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -29,4 +31,17 @@ func (r *Revision) Set(revision int64) {
 		*r.Revision = revision
 		r.Timestamp = nil
 	}
+}
+
+func MaskedFields[T proto.Message]() []protoreflect.FieldDescriptor {
+	var maskedFields []protoreflect.FieldDescriptor
+	var t T
+	fields := t.ProtoReflect().Descriptor().Fields()
+	for i, l := 0, fields.Len(); i < l; i++ {
+		field := fields.Get(i)
+		if proto.HasExtension(field.Options(), E_Masked) {
+			maskedFields = append(maskedFields, field)
+		}
+	}
+	return maskedFields
 }

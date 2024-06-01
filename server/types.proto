@@ -12,8 +12,8 @@ option (cli.generator) = {
 };
 
 enum Target {
-  ActiveConfiguration  = 0;
-  DefaultConfiguration = 1;
+  Active  = 0;
+  Default = 1;
 }
 
 enum Action {
@@ -27,13 +27,13 @@ message GetRequest {
   // If set, will return the config at the specified revision instead of
   // the current config.
   // This revision value can be obtained from the revision field of a
-  // typed GetConfiguration/GetDefaultConfiguration response, or from one of
-  // the history entries in a typed ConfigurationHistory response.
+  // typed Get/GetDefault response, or from one of
+  // the history entries in a typed History response.
   core.Revision revision = 1 [(cli.flag_set).no_prefix = true];
 }
 
 // History request options. See also: [pkg/storage.HistoryOptions]
-message ConfigurationHistoryRequest {
+message HistoryRequest {
   // The configuration type to return history for.
   server.Target target = 1;
   // The latest modification revision to include in the returned history.

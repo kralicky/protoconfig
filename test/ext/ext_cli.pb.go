@@ -283,19 +283,19 @@ func BuildConfigCmd() *cobra.Command {
 	}
 
 	cliutil.AddSubcommands(cmd, append([]*cobra.Command{
-		BuildConfigGetDefaultConfigurationCmd(),
-		BuildConfigSetDefaultConfigurationCmd(),
-		BuildConfigGetConfigurationCmd(),
-		BuildConfigSetConfigurationCmd(),
-		BuildConfigResetDefaultConfigurationCmd(),
-		BuildConfigResetConfigurationCmd(),
-		BuildConfigConfigurationHistoryCmd(),
+		BuildConfigGetDefaultCmd(),
+		BuildConfigSetDefaultCmd(),
+		BuildConfigGetCmd(),
+		BuildConfigSetCmd(),
+		BuildConfigResetDefaultCmd(),
+		BuildConfigResetCmd(),
+		BuildConfigHistoryCmd(),
 	}, extraCmds_Config...)...)
 	cli.AddOutputFlag(cmd)
 	return cmd
 }
 
-func BuildConfigGetDefaultConfigurationCmd() *cobra.Command {
+func BuildConfigGetDefaultCmd() *cobra.Command {
 	in := &SampleGetRequest{}
 	cmd := &cobra.Command{
 		Use:               "get-default",
@@ -311,7 +311,7 @@ func BuildConfigGetDefaultConfigurationCmd() *cobra.Command {
 			if in == nil {
 				return errors.New("no input provided")
 			}
-			response, err := client.GetDefaultConfiguration(cmd.Context(), in)
+			response, err := client.GetDefault(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
@@ -323,7 +323,7 @@ func BuildConfigGetDefaultConfigurationCmd() *cobra.Command {
 	return cmd
 }
 
-func BuildConfigSetDefaultConfigurationCmd() *cobra.Command {
+func BuildConfigSetDefaultCmd() *cobra.Command {
 	in := &SampleSetRequest{}
 	cmd := &cobra.Command{
 		Use:               "set-default",
@@ -337,7 +337,7 @@ func BuildConfigSetDefaultConfigurationCmd() *cobra.Command {
 				return nil
 			}
 			if cmd.Flags().Lookup("interactive").Value.String() == "true" {
-				if curValue, err := client.GetDefaultConfiguration(cmd.Context(), &SampleGetRequest{}); err == nil {
+				if curValue, err := client.GetDefault(cmd.Context(), &SampleGetRequest{}); err == nil {
 					in.Spec = curValue
 				}
 				if edited, err := cliutil.EditInteractive(in.Spec); err != nil {
@@ -356,7 +356,7 @@ func BuildConfigSetDefaultConfigurationCmd() *cobra.Command {
 			if in == nil {
 				return errors.New("no input provided")
 			}
-			_, err := client.SetDefaultConfiguration(cmd.Context(), in)
+			_, err := client.SetDefault(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
@@ -370,7 +370,7 @@ func BuildConfigSetDefaultConfigurationCmd() *cobra.Command {
 	return cmd
 }
 
-func BuildConfigGetConfigurationCmd() *cobra.Command {
+func BuildConfigGetCmd() *cobra.Command {
 	in := &SampleGetRequest{}
 	cmd := &cobra.Command{
 		Use:               "get",
@@ -386,7 +386,7 @@ func BuildConfigGetConfigurationCmd() *cobra.Command {
 			if in == nil {
 				return errors.New("no input provided")
 			}
-			response, err := client.GetConfiguration(cmd.Context(), in)
+			response, err := client.Get(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
@@ -398,7 +398,7 @@ func BuildConfigGetConfigurationCmd() *cobra.Command {
 	return cmd
 }
 
-func BuildConfigSetConfigurationCmd() *cobra.Command {
+func BuildConfigSetCmd() *cobra.Command {
 	in := &SampleSetRequest{}
 	cmd := &cobra.Command{
 		Use:               "set",
@@ -412,7 +412,7 @@ func BuildConfigSetConfigurationCmd() *cobra.Command {
 				return nil
 			}
 			if cmd.Flags().Lookup("interactive").Value.String() == "true" {
-				if curValue, err := client.GetConfiguration(cmd.Context(), &SampleGetRequest{}); err == nil {
+				if curValue, err := client.Get(cmd.Context(), &SampleGetRequest{}); err == nil {
 					in.Spec = curValue
 				}
 				if edited, err := cliutil.EditInteractive(in.Spec); err != nil {
@@ -431,7 +431,7 @@ func BuildConfigSetConfigurationCmd() *cobra.Command {
 			if in == nil {
 				return errors.New("no input provided")
 			}
-			_, err := client.SetConfiguration(cmd.Context(), in)
+			_, err := client.Set(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
@@ -445,7 +445,7 @@ func BuildConfigSetConfigurationCmd() *cobra.Command {
 	return cmd
 }
 
-func BuildConfigResetDefaultConfigurationCmd() *cobra.Command {
+func BuildConfigResetDefaultCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "reset-default",
 		Short:             "",
@@ -457,7 +457,7 @@ func BuildConfigResetDefaultConfigurationCmd() *cobra.Command {
 				cmd.PrintErrln("failed to get client from context")
 				return nil
 			}
-			_, err := client.ResetDefaultConfiguration(cmd.Context(), &emptypb.Empty{})
+			_, err := client.ResetDefault(cmd.Context(), &emptypb.Empty{})
 			if err != nil {
 				return err
 			}
@@ -467,7 +467,7 @@ func BuildConfigResetDefaultConfigurationCmd() *cobra.Command {
 	return cmd
 }
 
-func BuildConfigResetConfigurationCmd() *cobra.Command {
+func BuildConfigResetCmd() *cobra.Command {
 	in := &SampleResetRequest{}
 	cmd := &cobra.Command{
 		Use:               "reset",
@@ -494,7 +494,7 @@ func BuildConfigResetConfigurationCmd() *cobra.Command {
 			if in == nil {
 				return errors.New("no input provided")
 			}
-			_, err := client.ResetConfiguration(cmd.Context(), in)
+			_, err := client.Reset(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
@@ -508,7 +508,7 @@ func BuildConfigResetConfigurationCmd() *cobra.Command {
 	return cmd
 }
 
-func BuildConfigConfigurationHistoryCmd() *cobra.Command {
+func BuildConfigHistoryCmd() *cobra.Command {
 	in := &SampleHistoryRequest{}
 	cmd := &cobra.Command{
 		Use:               "history",
@@ -524,7 +524,7 @@ func BuildConfigConfigurationHistoryCmd() *cobra.Command {
 			if in == nil {
 				return errors.New("no input provided")
 			}
-			response, err := client.ConfigurationHistory(cmd.Context(), in)
+			response, err := client.History(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
@@ -534,7 +534,7 @@ func BuildConfigConfigurationHistoryCmd() *cobra.Command {
 	}
 	cmd.Flags().AddFlagSet(in.FlagSet())
 	cmd.RegisterFlagCompletionFunc("target", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"ActiveConfiguration", "DefaultConfiguration"}, cobra.ShellCompDirectiveDefault
+		return []string{"Active", "Default"}, cobra.ShellCompDirectiveDefault
 	})
 	return cmd
 }
@@ -904,7 +904,7 @@ func (in *SampleHistoryRequest) FlagSet(prefix ...string) *pflag.FlagSet {
 	fs := pflag.NewFlagSet("SampleHistoryRequest", pflag.ExitOnError)
 	fs.SortFlags = true
 	fs.Var(flagutil.StringPtrValue(nil, &in.Key), strings.Join(append(prefix, "key"), "."), "")
-	fs.Var(flagutil.EnumValue(server.Target_ActiveConfiguration, &in.Target), strings.Join(append(prefix, "target"), "."), "")
+	fs.Var(flagutil.EnumValue(server.Target_Active, &in.Target), strings.Join(append(prefix, "target"), "."), "")
 	if in.Revision == nil {
 		in.Revision = &v1.Revision{}
 	}
@@ -933,7 +933,7 @@ func (in *SampleDryRunRequest) FlagSet(prefix ...string) *pflag.FlagSet {
 	fs := pflag.NewFlagSet("SampleDryRunRequest", pflag.ExitOnError)
 	fs.SortFlags = true
 	fs.Var(flagutil.StringPtrValue(nil, &in.Key), strings.Join(append(prefix, "key"), "."), "")
-	fs.Var(flagutil.EnumValue(server.Target_ActiveConfiguration, &in.Target), strings.Join(append(prefix, "target"), "."), "")
+	fs.Var(flagutil.EnumValue(server.Target_Active, &in.Target), strings.Join(append(prefix, "target"), "."), "")
 	fs.Var(flagutil.EnumValue(server.Action_NoAction, &in.Action), strings.Join(append(prefix, "action"), "."), "")
 	if in.Spec == nil {
 		in.Spec = &SampleConfiguration{}

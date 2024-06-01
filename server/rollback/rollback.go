@@ -96,27 +96,27 @@ the secret values will not change from the current configuration.
 			var currentConfig, targetConfig T
 
 			switch target {
-			case server.Target_ActiveConfiguration:
+			case server.Target_Active:
 				withoutRevision := util.ProtoClone(getRequest)
 				server.UnsetRevision(withoutRevision)
 				var err error
-				currentConfig, err = client.GetConfiguration(cmd.Context(), withoutRevision)
+				currentConfig, err = client.Get(cmd.Context(), withoutRevision)
 				if err != nil {
 					return err
 				}
-				targetConfig, err = client.GetConfiguration(cmd.Context(), getRequest)
+				targetConfig, err = client.Get(cmd.Context(), getRequest)
 				if err != nil {
 					return err
 				}
-			case server.Target_DefaultConfiguration:
+			case server.Target_Default:
 				withoutRevision := util.ProtoClone(getRequest)
 				server.UnsetRevision(withoutRevision)
 				var err error
-				currentConfig, err = client.GetDefaultConfiguration(cmd.Context(), withoutRevision)
+				currentConfig, err = client.GetDefault(cmd.Context(), withoutRevision)
 				if err != nil {
 					return err
 				}
-				targetConfig, err = client.GetDefaultConfiguration(cmd.Context(), getRequest)
+				targetConfig, err = client.GetDefault(cmd.Context(), getRequest)
 				if err != nil {
 					return err
 				}
@@ -135,11 +135,11 @@ the secret values will not change from the current configuration.
 					rmd := rm.Descriptor()
 					rm.Set(rmd.Fields().ByName("target"), protoreflect.ValueOfEnum(target.Number()))
 					switch target {
-					case server.Target_ActiveConfiguration:
+					case server.Target_Active:
 						rm.Set(rmd.Fields().ByName("action"), protoreflect.ValueOfEnum(server.Action_Reset.Number()))
 						rm.Set(rmd.Fields().ByName("mask"), protoreflect.ValueOfMessage(fieldmask.ByPresence(targetConfig.ProtoReflect()).ProtoReflect()))
 						rm.Set(rmd.Fields().ByName("patch"), protoreflect.ValueOfMessage(targetConfig.ProtoReflect()))
-					case server.Target_DefaultConfiguration:
+					case server.Target_Default:
 						rm.Set(rmd.Fields().ByName("action"), protoreflect.ValueOfEnum(server.Action_Set.Number()))
 						rm.Set(rmd.Fields().ByName("spec"), protoreflect.ValueOfMessage(targetConfig.ProtoReflect()))
 					}
@@ -224,7 +224,7 @@ the secret values will not change from the current configuration.
 
 				// prompt for confirmation
 				message := fmt.Sprintf("Rollback the %s configuration to revision %d?",
-					strings.ToLower(strings.TrimSuffix(target.String(), "Configuration")), getRequest.GetRevision().GetRevision())
+					strings.ToLower(target.String()), getRequest.GetRevision().GetRevision())
 				yes := "Yes"
 
 				comments := []string{}
@@ -276,19 +276,19 @@ the secret values will not change from the current configuration.
 
 				// perform the rollback
 				switch target {
-				case server.Target_ActiveConfiguration:
+				case server.Target_Active:
 					// reset using a mask that includes all present fields in the target config,
 					// and the target config as the patch.
 					resetReq := util.NewMessage[R]()
 					resetReq.ProtoReflect().Set(util.FieldByName[R]("mask"), protoreflect.ValueOfMessage(fieldmask.ByPresence(targetConfig.ProtoReflect()).ProtoReflect()))
 					resetReq.ProtoReflect().Set(util.FieldByName[R]("patch"), protoreflect.ValueOfMessage(targetConfig.ProtoReflect()))
 
-					_, err = client.ResetConfiguration(cmd.Context(), resetReq)
-				case server.Target_DefaultConfiguration:
+					_, err = client.Reset(cmd.Context(), resetReq)
+				case server.Target_Default:
 					setReq := util.NewMessage[S]()
 					setReq.ProtoReflect().Set(util.FieldByName[S]("spec"), protoreflect.ValueOfMessage(targetConfig.ProtoReflect()))
 
-					_, err = client.SetDefaultConfiguration(cmd.Context(), setReq)
+					_, err = client.SetDefault(cmd.Context(), setReq)
 				}
 				if err != nil {
 					cmd.PrintErrln("rollback failed:", err)
@@ -322,7 +322,7 @@ the secret values will not change from the current configuration.
 	cmd.PersistentFlags().StringVar(&diffFormat, "diff-format", "console", "diff format (console, json, html)")
 
 	cmd.RegisterFlagCompletionFunc("target", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"ActiveConfiguration", "DefaultConfiguration"}, cobra.ShellCompDirectiveDefault
+		return []string{"Active", "Default"}, cobra.ShellCompDirectiveDefault
 	})
 	cmd.RegisterFlagCompletionFunc("diff-format", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"console", "json", "html"}, cobra.ShellCompDirectiveDefault

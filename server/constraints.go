@@ -13,11 +13,6 @@ import (
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
-type InstallableConfigType[T any] interface {
-	ConfigType[T]
-	GetEnabled() bool
-}
-
 type ContextKeyable interface {
 	proto.Message
 	ContextKey() protoreflect.FieldDescriptor
@@ -58,7 +53,7 @@ type SetRequestType[T ConfigType[T]] interface {
 }
 
 // Default constraint for a History request.
-// Not generic; the built-in message type [server.ConfigurationHistoryRequest] can be used for convenience
+// Not generic; the built-in message type [server.HistoryRequest] can be used for convenience
 type HistoryRequestType interface {
 	proto.Message
 	flagutil.FlagSetter
@@ -112,8 +107,8 @@ type BasicDefaultServer[
 	G GetRequestType,
 	S SetRequestType[T],
 ] interface {
-	GetDefaultConfiguration(context.Context, G) (T, error)
-	SetDefaultConfiguration(context.Context, S) (*emptypb.Empty, error)
+	GetDefault(context.Context, G) (T, error)
+	SetDefault(context.Context, S) (*emptypb.Empty, error)
 }
 
 type BasicActiveServer[
@@ -121,8 +116,8 @@ type BasicActiveServer[
 	G GetRequestType,
 	S SetRequestType[T],
 ] interface {
-	GetConfiguration(context.Context, G) (T, error)
-	SetConfiguration(context.Context, S) (*emptypb.Empty, error)
+	Get(context.Context, G) (T, error)
+	Set(context.Context, S) (*emptypb.Empty, error)
 }
 
 type ResetServer[
@@ -137,14 +132,14 @@ type ResetDefaultServer[
 	T ConfigType[T],
 	R ResetRequestType[T],
 ] interface {
-	ResetDefaultConfiguration(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	ResetDefault(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 }
 
 type ResetActiveServer[
 	T ConfigType[T],
 	R ResetRequestType[T],
 ] interface {
-	ResetConfiguration(context.Context, R) (*emptypb.Empty, error)
+	Reset(context.Context, R) (*emptypb.Empty, error)
 }
 
 type DryRunServer[
@@ -160,7 +155,7 @@ type HistoryServer[
 	H HistoryRequestType,
 	HR HistoryResponseType[T],
 ] interface {
-	ConfigurationHistory(context.Context, H) (HR, error)
+	History(context.Context, H) (HR, error)
 }
 
 type ConfigServer[
@@ -190,32 +185,28 @@ type DryRunConfigServer[
 	DryRunServer[T, D, DR]
 }
 
-type InstallerRequestType interface {
-	proto.Message
-}
-
 type GetClient[
 	T ConfigType[T],
 	G GetRequestType,
 ] interface {
-	GetDefaultConfiguration(context.Context, G, ...grpc.CallOption) (T, error)
-	GetConfiguration(context.Context, G, ...grpc.CallOption) (T, error)
+	GetDefault(context.Context, G, ...grpc.CallOption) (T, error)
+	Get(context.Context, G, ...grpc.CallOption) (T, error)
 }
 
 type SetClient[
 	T ConfigType[T],
 	S SetRequestType[T],
 ] interface {
-	SetDefaultConfiguration(context.Context, S, ...grpc.CallOption) (*emptypb.Empty, error)
-	SetConfiguration(context.Context, S, ...grpc.CallOption) (*emptypb.Empty, error)
+	SetDefault(context.Context, S, ...grpc.CallOption) (*emptypb.Empty, error)
+	Set(context.Context, S, ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type ResetClient[
 	T ConfigType[T],
 	R ResetRequestType[T],
 ] interface {
-	ResetDefaultConfiguration(context.Context, *emptypb.Empty, ...grpc.CallOption) (*emptypb.Empty, error)
-	ResetConfiguration(context.Context, R, ...grpc.CallOption) (*emptypb.Empty, error)
+	ResetDefault(context.Context, *emptypb.Empty, ...grpc.CallOption) (*emptypb.Empty, error)
+	Reset(context.Context, R, ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type DryRunClient[
@@ -231,5 +222,5 @@ type HistoryClient[
 	H HistoryRequestType,
 	HR HistoryResponseType[T],
 ] interface {
-	ConfigurationHistory(context.Context, H, ...grpc.CallOption) (HR, error)
+	History(context.Context, H, ...grpc.CallOption) (HR, error)
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/bufbuild/protovalidate-go"
 	cliutil "github.com/kralicky/codegen/pkg/cliutil"
+	corev1 "github.com/kralicky/protoconfig/apis/core/v1"
 	"github.com/kralicky/protoconfig/server"
-	"github.com/kralicky/protoconfig/util"
 	"github.com/nsf/jsondiff"
 	"github.com/samber/lo"
 	cobra "github.com/spf13/cobra"
@@ -19,6 +19,7 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -36,12 +37,10 @@ import (
 //
 //	func init() {
 //	  addExtraXCmd(dryrun.BuildCmd("dry-run", XContextInjector),
-//	    BuildXSetDefaultConfigurationCmd(),
-//	    BuildXSetConfigurationCmd(),
-//	    BuildXResetDefaultConfigurationCmd(),
-//	    BuildXResetConfigurationCmd(),
-//	    BuildXInstallCmd(),   // optional, if supported by the service
-//	    BuildXUninstallCmd(), // optional, if supported by the service
+//	    BuildXSetDefaultCmd(),
+//	    BuildXSetCmd(),
+//	    BuildXResetDefaultCmd(),
+//	    BuildXResetCmd(),
 //	  )
 //	}
 //
@@ -170,8 +169,8 @@ func NewDryRunClient[
 ](client C) *DryRunClient[T, G, S, R, D, DR, H, HR, C] {
 	return &DryRunClient[T, G, S, R, D, DR, H, HR, C]{
 		client:         client,
-		installable:    reflect.TypeOf((*T)(nil)).Elem().Implements(reflect.TypeOf((*server.InstallableConfigType[T])(nil)).Elem()),
-		contextKeyable: reflect.TypeOf((*D)(nil)).Elem().Implements(reflect.TypeOf((*server.ContextKeyable)(nil)).Elem()),
+		maskedFields:   corev1.MaskedFields[T](),
+		contextKeyable: reflect.TypeFor[D]().Implements(reflect.TypeFor[server.ContextKeyable]()),
 	}
 }
 
@@ -196,7 +195,7 @@ type DryRunClient[
 	request  D
 	response DR
 
-	installable    bool
+	maskedFields   []protoreflect.FieldDescriptor
 	contextKeyable bool
 }
 
@@ -212,8 +211,8 @@ func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) Response() DR {
 	return dc.response
 }
 
-// ResetConfiguration implements server.GetClient[T, G].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) ResetConfiguration(ctx context.Context, req R, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+// Reset implements server.GetClient[T, G].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) Reset(ctx context.Context, req R, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	dc.request = NewDryRunRequest[T, D]().
 		Active().
 		Reset().
@@ -234,8 +233,8 @@ func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) ResetConfiguration(ctx cont
 	return &emptypb.Empty{}, nil
 }
 
-// ResetDefaultConfiguration implements server.ResetClient[T, R].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) ResetDefaultConfiguration(ctx context.Context, _ *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+// ResetDefault implements server.ResetClient[T, R].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) ResetDefault(ctx context.Context, _ *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	dc.request = NewDryRunRequest[T, D]().
 		Default().
 		Reset().
@@ -249,10 +248,12 @@ func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) ResetDefaultConfiguration(c
 	return &emptypb.Empty{}, nil
 }
 
-// SetConfiguration implements server.SetClient[T, S].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) SetConfiguration(ctx context.Context, in S, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	if in.GetSpec().ProtoReflect().IsValid() && dc.installable {
-		in.GetSpec().ProtoReflect().Clear(util.FieldByName[T]("enabled"))
+// Set implements server.SetClient[T, S].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) Set(ctx context.Context, in S, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	if in.GetSpec().ProtoReflect().IsValid() {
+		for _, mf := range dc.maskedFields {
+			in.GetSpec().ProtoReflect().Clear(mf)
+		}
 	}
 	dc.request = NewDryRunRequest[T, D]().
 		Active().
@@ -272,10 +273,12 @@ func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) SetConfiguration(ctx contex
 	return &emptypb.Empty{}, nil
 }
 
-// SetDefaultConfiguration implements server.SetClient[T, S].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) SetDefaultConfiguration(ctx context.Context, in S, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	if in.GetSpec().ProtoReflect().IsValid() && dc.installable {
-		in.GetSpec().ProtoReflect().Clear(util.FieldByName[T]("enabled"))
+// SetDefault implements server.SetClient[T, S].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) SetDefault(ctx context.Context, in S, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	if in.GetSpec().ProtoReflect().IsValid() {
+		for _, mf := range dc.maskedFields {
+			in.GetSpec().ProtoReflect().Clear(mf)
+		}
 	}
 	dc.request = NewDryRunRequest[T, D]().
 		Default().
@@ -291,14 +294,14 @@ func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) SetDefaultConfiguration(ctx
 	return &emptypb.Empty{}, nil
 }
 
-// GetConfiguration implements server.GetClient[T, G].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) GetConfiguration(ctx context.Context, in G, opts ...grpc.CallOption) (T, error) {
-	return dc.client.GetConfiguration(ctx, in, opts...)
+// Get implements server.GetClient[T, G].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) Get(ctx context.Context, in G, opts ...grpc.CallOption) (T, error) {
+	return dc.client.Get(ctx, in, opts...)
 }
 
-// GetDefaultConfiguration implements server.GetClient[T, G].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) GetDefaultConfiguration(ctx context.Context, in G, opts ...grpc.CallOption) (T, error) {
-	return dc.client.GetDefaultConfiguration(ctx, in, opts...)
+// GetDefault implements server.GetClient[T, G].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) GetDefault(ctx context.Context, in G, opts ...grpc.CallOption) (T, error) {
+	return dc.client.GetDefault(ctx, in, opts...)
 }
 
 // DryRun implements server.DryRunClient[T, D, DR].
@@ -306,9 +309,9 @@ func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) DryRun(_ context.Context, _
 	return lo.Empty[DR](), status.Errorf(codes.Unimplemented, "[dry-run] method DryRun not implemented")
 }
 
-// ConfigurationHistory implements server.HistoryClient[T, H, HR].
-func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) ConfigurationHistory(_ context.Context, _ H, _ ...grpc.CallOption) (HR, error) {
-	return lo.Empty[HR](), status.Errorf(codes.Unimplemented, "[dry-run] method ConfigurationHistory not implemented")
+// History implements server.HistoryClient[T, H, HR].
+func (dc *DryRunClient[T, G, S, R, D, DR, H, HR, C]) History(_ context.Context, _ H, _ ...grpc.CallOption) (HR, error) {
+	return lo.Empty[HR](), status.Errorf(codes.Unimplemented, "[dry-run] method History not implemented")
 }
 
 func copyContextKey(dst, src proto.Message) {
@@ -366,38 +369,38 @@ func NewDryRunClientShim[
 // Invoke implements grpc.ClientConnInterface.
 func (dc *DryRunClientShim[T, G, S, R, D, DR, H, HR, C]) Invoke(ctx context.Context, method string, args any, reply any, opts ...grpc.CallOption) error {
 	switch path.Base(method) {
-	case "GetDefaultConfiguration":
-		resp, err := dc.dr.GetDefaultConfiguration(ctx, args.(G), opts...)
+	case "GetDefault":
+		resp, err := dc.dr.GetDefault(ctx, args.(G), opts...)
 		if err != nil {
 			return err
 		}
 		proto.Merge(reply.(proto.Message), resp)
-	case "SetDefaultConfiguration":
-		resp, err := dc.dr.SetDefaultConfiguration(ctx, args.(S), opts...)
+	case "SetDefault":
+		resp, err := dc.dr.SetDefault(ctx, args.(S), opts...)
 		if err != nil {
 			return err
 		}
 		proto.Merge(reply.(proto.Message), resp)
-	case "ResetDefaultConfiguration":
-		resp, err := dc.dr.ResetDefaultConfiguration(ctx, args.(*emptypb.Empty), opts...)
+	case "ResetDefault":
+		resp, err := dc.dr.ResetDefault(ctx, args.(*emptypb.Empty), opts...)
 		if err != nil {
 			return err
 		}
 		proto.Merge(reply.(proto.Message), resp)
-	case "GetConfiguration":
-		resp, err := dc.dr.GetConfiguration(ctx, args.(G), opts...)
+	case "Get":
+		resp, err := dc.dr.Get(ctx, args.(G), opts...)
 		if err != nil {
 			return err
 		}
 		proto.Merge(reply.(proto.Message), resp)
-	case "SetConfiguration":
-		resp, err := dc.dr.SetConfiguration(ctx, args.(S), opts...)
+	case "Set":
+		resp, err := dc.dr.Set(ctx, args.(S), opts...)
 		if err != nil {
 			return err
 		}
 		proto.Merge(reply.(proto.Message), resp)
-	case "ResetConfiguration":
-		resp, err := dc.dr.ResetConfiguration(ctx, args.(R), opts...)
+	case "Reset":
+		resp, err := dc.dr.Reset(ctx, args.(R), opts...)
 		if err != nil {
 			return err
 		}

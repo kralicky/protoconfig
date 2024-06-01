@@ -4,6 +4,7 @@ package core;
 
 import "github.com/kralicky/codegen/cli/cli.proto";
 import "github.com/kralicky/protoconfig/apis/core/v1/value.proto";
+import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/kralicky/protoconfig/apis/core/v1;corev1";
@@ -48,4 +49,9 @@ message ReactiveEvent {
   int32 index = 1;
 
   core.Value value = 2 [(cli.flag).skip = true];
+}
+
+extend google.protobuf.FieldOptions {
+  // If true, the field cannot be modified directly using Set/Reset methods.
+  bool masked = 51860;
 }

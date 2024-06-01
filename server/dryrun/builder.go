@@ -125,12 +125,12 @@ func (b *dryRunRequestBuilderImpl[T, D]) Reset() DryRunRequestBuilder_Reset[T, D
 }
 
 func (b *dryRunRequestBuilderImpl[T, D]) Default() DryRunRequestBuilder_Default[T, D] {
-	b.request.ProtoReflect().Set(util.FieldByName[D]("target"), protoreflect.ValueOfEnum(server.Target_DefaultConfiguration.Number()))
+	b.request.ProtoReflect().Set(util.FieldByName[D]("target"), protoreflect.ValueOfEnum(server.Target_Default.Number()))
 	return dryRunRequestBuilderImpl_ResetDefault[T, D]{b}
 }
 
 func (b *dryRunRequestBuilderImpl[T, D]) Active() DryRunRequestBuilder_Active[T, D] {
-	b.request.ProtoReflect().Set(util.FieldByName[D]("target"), protoreflect.ValueOfEnum(server.Target_ActiveConfiguration.Number()))
+	b.request.ProtoReflect().Set(util.FieldByName[D]("target"), protoreflect.ValueOfEnum(server.Target_Active.Number()))
 	return b
 }
 

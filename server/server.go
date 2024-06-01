@@ -5,7 +5,6 @@ import (
 
 	"github.com/kralicky/protoconfig/storage"
 	"github.com/kralicky/protoconfig/util"
-	"github.com/samber/lo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -41,98 +40,74 @@ func (*BaseConfigServer[G, S, R, H, HR, T]) Build(
 	}
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) GetConfiguration(ctx context.Context, in G) (T, error) {
-	return s.tracker.GetConfigOrDefault(ctx, in.GetRevision())
+func (s *BaseConfigServer[G, S, R, H, HR, T]) Get(ctx context.Context, in G) (T, error) {
+	return s.tracker.GetActiveOrDefault(ctx, in.GetRevision())
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) GetDefaultConfiguration(ctx context.Context, in G) (T, error) {
-	return s.tracker.GetDefaultConfig(ctx, in.GetRevision())
+func (s *BaseConfigServer[G, S, R, H, HR, T]) GetDefault(ctx context.Context, in G) (T, error) {
+	return s.tracker.GetDefault(ctx, in.GetRevision())
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) Install(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	var t T
-	t = t.ProtoReflect().New().Interface().(T)
-	s.setEnabled(t, lo.ToPtr(true))
-	err := s.tracker.ApplyConfig(ctx, t)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to install monitoring cluster: %s", err.Error())
-	}
-	return &emptypb.Empty{}, nil
-}
-
-func (s *BaseConfigServer[G, S, R, H, HR, T]) ResetDefaultConfiguration(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	if err := s.tracker.ResetDefaultConfig(ctx); err != nil {
+func (s *BaseConfigServer[G, S, R, H, HR, T]) ResetDefault(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
+	if err := s.tracker.ResetDefault(ctx); err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) ResetConfiguration(ctx context.Context, in R) (*emptypb.Empty, error) {
-	// If T contains a field named "enabled", assume it has installation semantics
-	// and ensure a non-nil mask is always passed to ResetConfig. This ensures
-	// the active config is never deleted from the underlying store, and therefore
-	// history is always preserved.
-	if enabledField := util.FieldByName[T]("enabled"); enabledField != nil {
+func (s *BaseConfigServer[G, S, R, H, HR, T]) Reset(ctx context.Context, in R) (*emptypb.Empty, error) {
+	// If T contains at least one masked field, ensure a non-nil mask is always
+	// passed to ResetConfig. This ensures the active config is never deleted from
+	// the underlying store, and therefore history is always preserved.
+	if len(s.tracker.maskedFields) > 0 {
 		if in.GetMask() == nil {
 			in.ProtoReflect().Set(util.FieldByName[R]("mask"), protoreflect.ValueOfMessage(util.NewMessage[*fieldmaskpb.FieldMask]().ProtoReflect()))
 		}
 		var t T
-		if err := in.GetMask().Append(t, "enabled"); err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid mask: %s", err.Error())
+		for _, maskedField := range s.tracker.maskedFields {
+			if err := in.GetMask().Append(t, string(maskedField.Name())); err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid mask: %s", err.Error())
+			}
 		}
 		patch := in.GetPatch()
-		if patch.ProtoReflect().Has(enabledField) {
-			// ensure the enabled field cannot be modified by the patch
-			patch.ProtoReflect().Clear(enabledField)
+		for _, maskedField := range s.tracker.maskedFields {
+			if patch.ProtoReflect().Has(maskedField) {
+				// ensure the enabled field cannot be modified by the patch
+				patch.ProtoReflect().Clear(maskedField)
+			}
 		}
 	}
-	if err := s.tracker.ResetConfig(ctx, in.GetMask(), in.GetPatch()); err != nil {
+	if err := s.tracker.Reset(ctx, in.GetMask(), in.GetPatch()); err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) SetConfiguration(ctx context.Context, in S) (*emptypb.Empty, error) {
-	s.setEnabled(in.GetSpec(), nil)
-	if err := s.tracker.ApplyConfig(ctx, in.GetSpec()); err != nil {
+func (s *BaseConfigServer[G, S, R, H, HR, T]) Set(ctx context.Context, in S) (*emptypb.Empty, error) {
+	s.clearMaskedFields(in.GetSpec())
+	if err := s.tracker.Apply(ctx, in.GetSpec()); err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) SetDefaultConfiguration(ctx context.Context, in S) (*emptypb.Empty, error) {
-	s.setEnabled(in.GetSpec(), nil)
-	if err := s.tracker.SetDefaultConfig(ctx, in.GetSpec()); err != nil {
+func (s *BaseConfigServer[G, S, R, H, HR, T]) SetDefault(ctx context.Context, in S) (*emptypb.Empty, error) {
+	s.clearMaskedFields(in.GetSpec())
+	if err := s.tracker.SetDefault(ctx, in.GetSpec()); err != nil {
 		return nil, err
 	}
 	return &emptypb.Empty{}, nil
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) Uninstall(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	var t T
-	t = t.ProtoReflect().New().Interface().(T)
-	s.setEnabled(t, lo.ToPtr(false))
-	err := s.tracker.ApplyConfig(ctx, t)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to uninstall monitoring cluster: %s", err.Error())
-	}
-	return &emptypb.Empty{}, nil
-}
-
-func (s *BaseConfigServer[G, S, R, H, HR, T]) setEnabled(t T, enabled *bool) {
-	field := util.FieldByName[T]("enabled")
-	if field == nil {
-		return
-	}
-	msg := t.ProtoReflect()
-	if msg.Has(field) && enabled == nil {
-		msg.Clear(field)
-	} else if enabled != nil {
-		msg.Set(field, protoreflect.ValueOfBool(*enabled))
+func (s *BaseConfigServer[G, S, R, H, HR, T]) clearMaskedFields(t T) {
+	for _, field := range s.tracker.maskedFields {
+		if t.ProtoReflect().Has(field) {
+			t.ProtoReflect().Clear(field)
+		}
 	}
 }
 
-func (s *BaseConfigServer[G, S, R, H, HR, T]) ConfigurationHistory(ctx context.Context, in H) (HR, error) {
+func (s *BaseConfigServer[G, S, R, H, HR, T]) History(ctx context.Context, in H) (HR, error) {
 	options := []storage.HistoryOpt{
 		storage.IncludeValues(in.GetIncludeValues()),
 	}
@@ -227,40 +202,32 @@ func (*ContextKeyableConfigServer[G, S, R, H, HR, T]) Build(
 	}
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) GetDefaultConfiguration(ctx context.Context, in G) (T, error) {
-	return s.base.GetDefaultConfiguration(ctx, in)
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) GetDefault(ctx context.Context, in G) (T, error) {
+	return s.base.GetDefault(ctx, in)
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) ResetDefaultConfiguration(ctx context.Context, in *emptypb.Empty) (*emptypb.Empty, error) {
-	return s.base.ResetDefaultConfiguration(ctx, in)
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) ResetDefault(ctx context.Context, in *emptypb.Empty) (*emptypb.Empty, error) {
+	return s.base.ResetDefault(ctx, in)
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) SetDefaultConfiguration(ctx context.Context, in S) (*emptypb.Empty, error) {
-	return s.base.SetDefaultConfiguration(ctx, in)
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) SetDefault(ctx context.Context, in S) (*emptypb.Empty, error) {
+	return s.base.SetDefault(ctx, in)
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) GetConfiguration(ctx context.Context, in G) (T, error) {
-	return s.base.GetConfiguration(contextWithKey(ctx, in), in)
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) Get(ctx context.Context, in G) (T, error) {
+	return s.base.Get(contextWithKey(ctx, in), in)
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) ResetConfiguration(ctx context.Context, in R) (*emptypb.Empty, error) {
-	return s.base.ResetConfiguration(contextWithKey(ctx, in), in)
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) Reset(ctx context.Context, in R) (*emptypb.Empty, error) {
+	return s.base.Reset(contextWithKey(ctx, in), in)
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) SetConfiguration(ctx context.Context, in S) (*emptypb.Empty, error) {
-	return s.base.SetConfiguration(contextWithKey(ctx, in), in)
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) Set(ctx context.Context, in S) (*emptypb.Empty, error) {
+	return s.base.Set(contextWithKey(ctx, in), in)
 }
 
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) ConfigurationHistory(ctx context.Context, in H) (HR, error) {
-	return s.base.ConfigurationHistory(contextWithKey(ctx, in), in)
-}
-
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) Install(ctx context.Context, in ContextKeyable) (*emptypb.Empty, error) {
-	return s.base.Install(contextWithKey(ctx, in), &emptypb.Empty{})
-}
-
-func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) Uninstall(ctx context.Context, in ContextKeyable) (*emptypb.Empty, error) {
-	return s.base.Uninstall(contextWithKey(ctx, in), &emptypb.Empty{})
+func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) History(ctx context.Context, in H) (HR, error) {
+	return s.base.History(contextWithKey(ctx, in), in)
 }
 
 func (s *ContextKeyableConfigServer[G, S, R, H, HR, T]) ServerDryRun(ctx context.Context, req interface {

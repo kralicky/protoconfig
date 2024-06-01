@@ -102,9 +102,9 @@ func DefaultingConfigTrackerTestSuite[
 			When("getting the default config", func() {
 				It("should return a default config if it is in the store", func() {
 					expected := mustGen()
-					Expect(configTracker.SetDefaultConfig(wctx, expected)).To(Succeed())
+					Expect(configTracker.SetDefault(wctx, expected)).To(Succeed())
 
-					conf, err := configTracker.GetDefaultConfig(wctx)
+					conf, err := configTracker.GetDefault(wctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					expected.RedactSecrets()
@@ -113,7 +113,7 @@ func DefaultingConfigTrackerTestSuite[
 				})
 
 				It("should return a new default config if it is not found in the store", func() {
-					conf, err := configTracker.GetDefaultConfig(wctx)
+					conf, err := configTracker.GetDefault(wctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(conf).To(testutil.ProtoEqual(withRevision(newDefaultsRedacted(), 0)))
@@ -124,10 +124,10 @@ func DefaultingConfigTrackerTestSuite[
 				Specify("subsequent calls to GetDefaultConfig should return the new default", func() {
 					newDefault := mustGen()
 
-					err := configTracker.SetDefaultConfig(wctx, newDefault)
+					err := configTracker.SetDefault(wctx, newDefault)
 					Expect(err).NotTo(HaveOccurred())
 
-					conf, err := configTracker.GetDefaultConfig(wctx)
+					conf, err := configTracker.GetDefault(wctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					newDefault.RedactSecrets()
@@ -137,10 +137,10 @@ func DefaultingConfigTrackerTestSuite[
 				When("applying configurations with secrets", func() {
 					It("should correctly redact secrets", func() {
 						newDefault := mustGen()
-						err := configTracker.SetDefaultConfig(wctx, newDefault)
+						err := configTracker.SetDefault(wctx, newDefault)
 						Expect(err).NotTo(HaveOccurred())
 
-						conf, err := configTracker.GetDefaultConfig(wctx)
+						conf, err := configTracker.GetDefault(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(conf).NotTo(testutil.ProtoEqual(newDefault))
 
@@ -155,14 +155,14 @@ func DefaultingConfigTrackerTestSuite[
 				When("there is an active config in the store", func() {
 					Specify("GetConfig should return the active config", func() {
 						active := mustGen()
-						Expect(configTracker.ApplyConfig(wctx, active)).To(Succeed())
+						Expect(configTracker.Apply(wctx, active)).To(Succeed())
 
 						defaults := newDefaults()
 						merge.MergeWithReplace(defaults, active)
 
 						Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(defaults))))
 
-						conf, err := configTracker.GetConfig(wctx)
+						conf, err := configTracker.Get(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						defaults.RedactSecrets()
 						server.CopyRevision(defaults, conf)
@@ -170,14 +170,14 @@ func DefaultingConfigTrackerTestSuite[
 					})
 					Specify("GetConfigOrDefault should return the active config", func() {
 						expected := mustGen()
-						Expect(configTracker.ApplyConfig(wctx, expected)).To(Succeed())
+						Expect(configTracker.Apply(wctx, expected)).To(Succeed())
 
 						defaults := newDefaults()
 						merge.MergeWithReplace(defaults, expected)
 
 						Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(defaults))))
 
-						conf, err := configTracker.GetConfigOrDefault(wctx)
+						conf, err := configTracker.GetActiveOrDefault(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						defaults.RedactSecrets()
 						server.CopyRevision(defaults, conf)
@@ -186,14 +186,14 @@ func DefaultingConfigTrackerTestSuite[
 				})
 				When("there is no active config in the store", func() {
 					Specify("GetConfig should return an error", func() {
-						conf, err := configTracker.GetConfig(wctx)
+						conf, err := configTracker.Get(wctx)
 						Expect(storage.IsNotFound(err)).To(BeTrue())
 						Expect(conf).To(BeNil())
 					})
 					Specify("GetConfigOrDefault should return a default config", func() {
 						defaultConfig := newDefaults()
-						Expect(configTracker.SetDefaultConfig(wctx, defaultConfig)).To(Succeed())
-						conf, err := configTracker.GetConfigOrDefault(wctx)
+						Expect(configTracker.SetDefault(wctx, defaultConfig)).To(Succeed())
+						conf, err := configTracker.GetActiveOrDefault(wctx)
 
 						Expect(err).NotTo(HaveOccurred())
 						defaultConfig.RedactSecrets()
@@ -203,7 +203,7 @@ func DefaultingConfigTrackerTestSuite[
 				})
 				When("an error occurs looking up the active config", func() {
 					It("should return the error", func() {
-						_, err := configTracker.GetConfig(wctx)
+						_, err := configTracker.Get(wctx)
 						Expect(storage.IsNotFound(err)).To(BeTrue())
 					})
 				})
@@ -214,16 +214,16 @@ func DefaultingConfigTrackerTestSuite[
 					It("should merge the incoming config with the defaults", func() {
 						newActive := mustGenPartial(0.25)
 						defaultConfig := newDefaults()
-						Expect(configTracker.SetDefaultConfig(wctx, defaultConfig)).To(Succeed())
+						Expect(configTracker.SetDefault(wctx, defaultConfig)).To(Succeed())
 
 						mergedConfig := defaultConfig
 						merge.MergeWithReplace(mergedConfig, newActive)
 
-						err := configTracker.ApplyConfig(wctx, newActive)
+						err := configTracker.Apply(wctx, newActive)
 						Expect(err).NotTo(HaveOccurred())
 						Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(withoutRevision(mergedConfig)))))
 
-						activeConfig, err := configTracker.GetConfig(wctx)
+						activeConfig, err := configTracker.Get(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						mergedConfig.RedactSecrets()
 						server.CopyRevision(mergedConfig, activeConfig)
@@ -234,7 +234,7 @@ func DefaultingConfigTrackerTestSuite[
 						It("should merge the incoming config with new defaults", func() {
 							newActive := mustGenPartial(0.25)
 
-							err := configTracker.ApplyConfig(wctx, newActive)
+							err := configTracker.Apply(wctx, newActive)
 							Expect(err).NotTo(HaveOccurred())
 
 							newDefaults := newDefaults()
@@ -242,7 +242,7 @@ func DefaultingConfigTrackerTestSuite[
 
 							Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(newDefaults))))
 
-							activeConfig, err := configTracker.GetConfig(wctx)
+							activeConfig, err := configTracker.Get(wctx)
 							Expect(err).NotTo(HaveOccurred())
 
 							newDefaults.RedactSecrets()
@@ -253,12 +253,12 @@ func DefaultingConfigTrackerTestSuite[
 					When("applying with redacted placeholders", func() {
 						It("should preserve the underlying secret value", func() {
 							defaults := newDefaults()
-							Expect(configTracker.SetDefaultConfig(wctx, defaults)).To(Succeed())
+							Expect(configTracker.SetDefault(wctx, defaults)).To(Succeed())
 
 							newActive := withRevision(mustGen(), 0)
 							// redact secrets before applying, which sets them to *** preserving the underlying value
 							newActive.RedactSecrets()
-							Expect(configTracker.ApplyConfig(wctx, newActive)).To(Succeed())
+							Expect(configTracker.Apply(wctx, newActive)).To(Succeed())
 							var event storage.WatchEvent[storage.KeyRevision[T]]
 							Eventually(updateC).Should(Receive(&event))
 
@@ -277,18 +277,18 @@ func DefaultingConfigTrackerTestSuite[
 						oldActive := mustGen()
 
 						newActive := mustGenPartial(0.5)
-						Expect(configTracker.ApplyConfig(wctx, oldActive)).To(Succeed())
+						Expect(configTracker.Apply(wctx, oldActive)).To(Succeed())
 						Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(oldActive))))
 						mergedConfig := oldActive
 						merge.MergeWithReplace(mergedConfig, newActive)
 
 						server.CopyRevision(newActive, mergedConfig)
-						err := configTracker.ApplyConfig(wctx, newActive)
+						err := configTracker.Apply(wctx, newActive)
 						Expect(err).NotTo(HaveOccurred())
 
 						Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(withoutRevision(mergedConfig)))))
 
-						activeConfig, err := configTracker.GetConfig(wctx)
+						activeConfig, err := configTracker.Get(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						mergedConfig.RedactSecrets()
 						server.CopyRevision(mergedConfig, activeConfig)
@@ -300,7 +300,7 @@ func DefaultingConfigTrackerTestSuite[
 			When("setting the active config", func() {
 				It("should ignore any existing active config and merge with the default", func() {
 					def := newDefaults()
-					Expect(configTracker.SetDefaultConfig(wctx, def)).To(Succeed())
+					Expect(configTracker.SetDefault(wctx, def)).To(Succeed())
 
 					defClone := util.ProtoClone(def)
 
@@ -308,11 +308,11 @@ func DefaultingConfigTrackerTestSuite[
 
 					merge.MergeWithReplace(defClone, updates)
 
-					err := configTracker.ApplyConfig(wctx, updates)
+					err := configTracker.Apply(wctx, updates)
 					Expect(err).NotTo(HaveOccurred())
 					Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(defClone))))
 
-					activeConfig, err := configTracker.GetConfig(wctx)
+					activeConfig, err := configTracker.Get(wctx)
 					Expect(err).NotTo(HaveOccurred())
 					defClone.RedactSecrets()
 					server.CopyRevision(defClone, activeConfig)
@@ -324,22 +324,22 @@ func DefaultingConfigTrackerTestSuite[
 				It("should delete the config from the underlying store", func() {
 					updates := mustGenPartial(0.1)
 
-					Expect(configTracker.ApplyConfig(wctx, updates)).To(Succeed())
+					Expect(configTracker.Apply(wctx, updates)).To(Succeed())
 					newActive := newDefaults()
 					merge.MergeWithReplace(newActive, updates)
 					Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(newActive))))
 
-					err := configTracker.ResetConfig(wctx, nil, lo.Empty[T]())
+					err := configTracker.Reset(wctx, nil, lo.Empty[T]())
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(updateC).Should(Receive(WithTransform(transform, BeNil())))
 
-					_, err = configTracker.GetConfig(wctx)
+					_, err = configTracker.Get(wctx)
 					Expect(err).To(testutil.MatchStatusCode(storage.ErrNotFound))
 				})
 				When("an error occurs deleting the config", func() {
 					It("should return the error", func() {
-						err := configTracker.ResetConfig(wctx, nil, lo.Empty[T]())
+						err := configTracker.Reset(wctx, nil, lo.Empty[T]())
 						Expect(err).To(testutil.MatchStatusCode(storage.ErrNotFound))
 						Expect(updateC).NotTo(Receive())
 					})
@@ -347,14 +347,14 @@ func DefaultingConfigTrackerTestSuite[
 				When("providing a field mask", func() {
 					It("should preserve the fields in the mask", func() {
 						conf := mustGen()
-						Expect(configTracker.ApplyConfig(wctx, conf)).To(Succeed())
+						Expect(configTracker.Apply(wctx, conf)).To(Succeed())
 						Eventually(updateC).Should(Receive(WithTransform(transform, testutil.ProtoEqual(conf))))
 
 						// generate a random mask
 						mask := fieldmask.ByPresence(mustGenPartial(0.25).ProtoReflect())
 						Expect(mask.IsValid(conf)).To(BeTrue(), mask.GetPaths())
 
-						err := configTracker.ResetConfig(wctx, mask, lo.Empty[T]())
+						err := configTracker.Reset(wctx, mask, lo.Empty[T]())
 						Expect(err).NotTo(HaveOccurred())
 
 						expected := newDefaults()
@@ -367,23 +367,23 @@ func DefaultingConfigTrackerTestSuite[
 			})
 			When("resetting the default config", func() {
 				It("should delete the config from the underlying store", func() {
-					originalDefault, err := configTracker.GetDefaultConfig(wctx)
+					originalDefault, err := configTracker.GetDefault(wctx)
 					Expect(err).NotTo(HaveOccurred())
 
 					modifiedDefault := mustGenPartial(0.5)
-					Expect(configTracker.SetDefaultConfig(wctx, modifiedDefault)).To(Succeed())
+					Expect(configTracker.SetDefault(wctx, modifiedDefault)).To(Succeed())
 
-					err = configTracker.ResetDefaultConfig(wctx)
+					err = configTracker.ResetDefault(wctx)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(updateC).NotTo(Receive())
 
-					conf, err := configTracker.GetDefaultConfig(wctx)
+					conf, err := configTracker.GetDefault(wctx)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(conf).To(Equal(originalDefault))
 				})
 				When("an error occurs deleting the config", func() {
 					It("should return the error", func() {
-						err := configTracker.ResetDefaultConfig(wctx)
+						err := configTracker.ResetDefault(wctx)
 						Expect(storage.IsNotFound(err)).To(BeTrue())
 						Expect(updateC).NotTo(Receive())
 					})
@@ -394,7 +394,7 @@ func DefaultingConfigTrackerTestSuite[
 					It("should report changes without persisting them", func() {
 						newDefault := mustGen()
 
-						results, err := configTracker.DryRunSetDefaultConfig(wctx, newDefault)
+						results, err := configTracker.DryRunSetDefault(wctx, newDefault)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(withoutRevision(results.Current)).To(testutil.ProtoEqual(newDefaultsRedacted()))
 						conf := results.Modified
@@ -403,7 +403,7 @@ func DefaultingConfigTrackerTestSuite[
 						server.CopyRevision(newDefault, conf)
 						Expect(conf).To(testutil.ProtoEqual(newDefault))
 
-						conf, err = configTracker.GetDefaultConfig(wctx)
+						conf, err = configTracker.GetDefault(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(conf).To(testutil.ProtoEqual(withRevision(newDefaultsRedacted(), 0)))
 					})
@@ -412,7 +412,7 @@ func DefaultingConfigTrackerTestSuite[
 					It("should report changes without persisting them", func() {
 						newActive := mustGen()
 
-						results, err := configTracker.DryRunApplyConfig(wctx, newActive)
+						results, err := configTracker.DryRunApply(wctx, newActive)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(withoutRevision(results.Current)).To(testutil.ProtoEqual(withoutRevision(newDefaultsRedacted())))
 						conf := results.Modified
@@ -421,23 +421,23 @@ func DefaultingConfigTrackerTestSuite[
 						server.CopyRevision(newActive, conf)
 						Expect(conf).To(testutil.ProtoEqual(newActive))
 
-						_, err = configTracker.GetConfig(wctx)
+						_, err = configTracker.Get(wctx)
 						Expect(err).To(testutil.MatchStatusCode(storage.ErrNotFound))
 					})
 				})
 				When("resetting the default config", func() {
 					It("should report changes without persisting them", func() {
 						conf := mustGen()
-						Expect(configTracker.SetDefaultConfig(wctx, conf)).To(Succeed())
+						Expect(configTracker.SetDefault(wctx, conf)).To(Succeed())
 						conf.RedactSecrets()
 
-						results, err := configTracker.DryRunResetDefaultConfig(wctx)
+						results, err := configTracker.DryRunResetDefault(wctx)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(withoutRevision(results.Current)).To(testutil.ProtoEqual(withoutRevision(conf)))
 						Expect(results.Modified).To(testutil.ProtoEqual(withoutRevision(newDefaultsRedacted())))
 
-						conf, err = configTracker.GetDefaultConfig(wctx)
+						conf, err = configTracker.GetDefault(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(conf).To(testutil.ProtoEqual(withoutRevision(conf)))
 					})
@@ -446,16 +446,16 @@ func DefaultingConfigTrackerTestSuite[
 					When("neither mask nor patch are provided", func() {
 						It("should report changes without persisting them", func() {
 							conf := mustGen()
-							Expect(configTracker.ApplyConfig(wctx, conf)).To(Succeed())
+							Expect(configTracker.Apply(wctx, conf)).To(Succeed())
 							conf.RedactSecrets()
 
-							results, err := configTracker.DryRunResetConfig(wctx, nil, lo.Empty[T]())
+							results, err := configTracker.DryRunReset(wctx, nil, lo.Empty[T]())
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(withoutRevision(results.Current)).To(testutil.ProtoEqual(withoutRevision(conf)))
 							Expect(results.Modified).To(testutil.ProtoEqual(withoutRevision(newDefaultsRedacted())))
 
-							conf, err = configTracker.GetConfig(wctx)
+							conf, err = configTracker.Get(wctx)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(conf).To(testutil.ProtoEqual(withoutRevision(conf)))
 						})
@@ -470,19 +470,19 @@ func DefaultingConfigTrackerTestSuite[
 				When("values are requested", func() {
 					It("should redact secrets", func() {
 						cfg1 := mustGen()
-						Expect(configTracker.SetDefaultConfig(wctx, cfg1)).To(Succeed())
-						cfg1WithRev, err := configTracker.GetDefaultConfig(wctx)
+						Expect(configTracker.SetDefault(wctx, cfg1)).To(Succeed())
+						cfg1WithRev, err := configTracker.GetDefault(wctx)
 						Expect(err).NotTo(HaveOccurred())
 						cfg2 := mustGen()
 						cfg2WithRev := util.ProtoClone(cfg2)
 						server.CopyRevision(cfg2WithRev, cfg1WithRev)
-						Expect(configTracker.SetDefaultConfig(wctx, cfg2WithRev)).To(Succeed())
-						Expect(configTracker.ApplyConfig(wctx, cfg1)).To(Succeed())
-						Expect(configTracker.ApplyConfig(wctx, cfg2)).To(Succeed())
+						Expect(configTracker.SetDefault(wctx, cfg2WithRev)).To(Succeed())
+						Expect(configTracker.Apply(wctx, cfg1)).To(Succeed())
+						Expect(configTracker.Apply(wctx, cfg2)).To(Succeed())
 
-						historyDefault, err := configTracker.History(wctx, server.Target_DefaultConfiguration, storage.IncludeValues(true))
+						historyDefault, err := configTracker.History(wctx, server.Target_Default, storage.IncludeValues(true))
 						Expect(err).NotTo(HaveOccurred())
-						historyActive, err := configTracker.History(wctx, server.Target_ActiveConfiguration, storage.IncludeValues(true))
+						historyActive, err := configTracker.History(wctx, server.Target_Active, storage.IncludeValues(true))
 						Expect(err).NotTo(HaveOccurred())
 						Expect(historyDefault).To(HaveLen(2))
 						Expect(historyDefault[0].Value()).NotTo(testutil.ProtoEqual(cfg1))
@@ -516,10 +516,10 @@ func DefaultingConfigTrackerTestSuite[
 				fmt.Fprintln(debugLogger, "action: setDefault")
 				defer func() { fmt.Fprintln(debugLogger, "action: setDefault (end)") }()
 
-				currentDefaultRev := testutil.Must(configTracker.GetDefaultConfig(ctx)).GetRevision().GetRevision()
-				Expect(configTracker.SetDefaultConfig(ctx, withRevision(newDefault, currentDefaultRev))).To(Succeed())
+				currentDefaultRev := testutil.Must(configTracker.GetDefault(ctx)).GetRevision().GetRevision()
+				Expect(configTracker.SetDefault(ctx, withRevision(newDefault, currentDefaultRev))).To(Succeed())
 				newDefault.RedactSecrets()
-				newDefaultRev := testutil.Must(configTracker.GetDefaultConfig(ctx)).GetRevision().GetRevision()
+				newDefaultRev := testutil.Must(configTracker.GetDefault(ctx)).GetRevision().GetRevision()
 				select {
 				case e := <-watchDefault:
 					Expect(e.EventType).To(Equal(storage.WatchEventPut))
@@ -532,9 +532,9 @@ func DefaultingConfigTrackerTestSuite[
 			resetDefault := func(ctx SpecContext) {
 				fmt.Fprintln(debugLogger, "action: resetDefault")
 				defer func() { fmt.Fprintln(debugLogger, "action: resetDefault (end)") }()
-				lastDefault, err := configTracker.GetDefaultConfig(ctx)
+				lastDefault, err := configTracker.GetDefault(ctx)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(configTracker.ResetDefaultConfig(ctx)).To(Succeed())
+				Expect(configTracker.ResetDefault(ctx)).To(Succeed())
 				select {
 				case e := <-watchDefault:
 					Expect(e.EventType).To(Equal(storage.WatchEventDelete))
@@ -552,9 +552,9 @@ func DefaultingConfigTrackerTestSuite[
 				fmt.Fprintln(debugLogger, "action: setActive")
 				defer func() { fmt.Fprintln(debugLogger, "action: setActive (end)") }()
 				for i := 0; ; i++ {
-					currentActive, err := configTracker.GetConfig(ctx)
+					currentActive, err := configTracker.Get(ctx)
 					if storage.IsNotFound(err) {
-						err := configTracker.ApplyConfig(ctx, newActive)
+						err := configTracker.Apply(ctx, newActive)
 						if err != nil {
 							if storage.IsConflict(err) {
 								continue
@@ -564,11 +564,11 @@ func DefaultingConfigTrackerTestSuite[
 					} else if err != nil {
 						Fail(err.Error())
 					} else {
-						Expect(configTracker.ApplyConfig(ctx, withRevision(newActive, currentActive.GetRevision().GetRevision()))).To(Succeed())
+						Expect(configTracker.Apply(ctx, withRevision(newActive, currentActive.GetRevision().GetRevision()))).To(Succeed())
 					}
 					break
 				}
-				actualActive, err := configTracker.GetConfig(ctx)
+				actualActive, err := configTracker.Get(ctx)
 				Expect(err).NotTo(HaveOccurred())
 				select {
 				case e := <-watchActive:
@@ -587,10 +587,10 @@ func DefaultingConfigTrackerTestSuite[
 				fmt.Fprintln(debugLogger, "action: resetActive")
 				defer func() { fmt.Fprintln(debugLogger, "action: resetActive (end)") }()
 
-				lastActive, err := configTracker.GetConfig(ctx)
+				lastActive, err := configTracker.Get(ctx)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(configTracker.ResetConfig(ctx, nil, lo.Empty[T]())).To(Succeed())
+				Expect(configTracker.Reset(ctx, nil, lo.Empty[T]())).To(Succeed())
 
 				select {
 				case e := <-watchActive:

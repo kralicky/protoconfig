@@ -19,7 +19,7 @@ func Revisions[
 ](ctx context.Context, req H, client C) ([]string, cobra.ShellCompDirective) {
 	clone := util.ProtoClone(req)
 	clone.ProtoReflect().Set(util.FieldByName[H]("includevalues"), protoreflect.ValueOfBool(false))
-	history, err := client.ConfigurationHistory(ctx, clone)
+	history, err := client.History(ctx, clone)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
