@@ -12,7 +12,6 @@ import (
 	"github.com/kralicky/protoconfig/util"
 	"github.com/kralicky/protoconfig/util/fieldmask"
 	"github.com/kralicky/protoconfig/util/merge"
-	"github.com/kralicky/protoconfig/validation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -44,6 +43,10 @@ func NewDefaultingConfigTracker[T ConfigType[T]](
 	defaultStore, activeStore storage.ValueStoreT[T],
 	loadDefaultsFunc DefaultLoaderFunc[T],
 ) *DefaultingConfigTracker[T] {
+	validator, err := protovalidate.New()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create validator: %v", err))
+	}
 	return &DefaultingConfigTracker[T]{
 		lock:               &sync.Mutex{},
 		defaultStore:       defaultStore,
@@ -52,7 +55,7 @@ func NewDefaultingConfigTracker[T ConfigType[T]](
 		revisionFieldIndex: GetRevisionFieldIndex[T](),
 		redact:             (SecretsRedactor[T]).RedactSecrets,
 		unredact:           (SecretsRedactor[T]).UnredactSecrets,
-		validator:          validation.MustNewValidator(),
+		validator:          validator,
 	}
 }
 

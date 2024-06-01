@@ -52,10 +52,10 @@ import (
 // as a subcommand of the service's top-level command. For example,
 // (assuming the service's use line is "config"):
 //
-//	$ opni x config set [--flags ...]
-//	$ opni x config dry-run set [--flags ...]
-//	$ opni x config reset [--flags ...]
-//	$ opni x config dry-run reset [--flags ...]
+//	$ <cmd> x config set [--flags ...]
+//	$ <cmd> x config dry-run set [--flags ...]
+//	$ <cmd> x config reset [--flags ...]
+//	$ <cmd> x config dry-run reset [--flags ...]
 //	etc.
 func BuildCmd[
 	T server.ConfigType[T],

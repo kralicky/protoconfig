@@ -26,7 +26,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const FieldManagerName = "opni-crd-value-store"
+const (
+	FieldManagerName       = "protoconfig-crd-value-store"
+	HistoryAnnotation      = "protoconfig-history"
+	LastModifiedAnnotation = "protoconfig-last-modified"
+)
 
 type ValueStoreMethods[O client.Object, T server.ConfigType[T]] interface {
 	ControllerReference() (client.Object, bool)
@@ -198,7 +202,7 @@ func (s *CRDValueStore[O, T]) Get(ctx context.Context, opts ...storage.GetOpt) (
 	var confRevision int64
 	if getOpts.Revision != nil && *getOpts.Revision != latestRevision {
 		var history historyFormat[T]
-		if str, ok := obj.GetAnnotations()["opni.io/history"]; ok {
+		if str, ok := obj.GetAnnotations()[HistoryAnnotation]; ok {
 			// not using readHistory here because the previous check for the
 			// latest revision is quicker, and we aren't returning the history
 			decodeHistory(str, &history)
@@ -406,7 +410,7 @@ func (s *CRDValueStore[O, T]) getPreviousRevisionSlow(obj O) int64 {
 	// revision of the last put/create operation on the object. This info
 	// will be stored in the history.
 	var history historyFormat[T]
-	if str, ok := obj.GetAnnotations()["opni.io/history"]; ok {
+	if str, ok := obj.GetAnnotations()[HistoryAnnotation]; ok {
 		decodeHistory(str, &history)
 	}
 	if len(history.Entries) == 0 {
@@ -533,19 +537,19 @@ func (s *CRDValueStore[O, T]) appendSpecToHistory(obj O) error {
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	if str, ok := annotations["opni.io/history"]; ok {
+	if str, ok := annotations[HistoryAnnotation]; ok {
 		decodeHistory(str, &history)
 	} else {
 		history.Entries = []historyEntry[T]{}
 	}
 	var lastModifiedTime time.Time
 
-	if lastModified, ok := annotations["opni.io/last-modified"]; ok {
+	if lastModified, ok := annotations[LastModifiedAnnotation]; ok {
 		lastModifiedTime, _ = time.Parse(time.RFC3339Nano, lastModified)
 	} else {
 		lastModifiedTime = obj.GetCreationTimestamp().Time
 	}
-	annotations["opni.io/last-modified"] = time.Now().Format(time.RFC3339Nano)
+	annotations[LastModifiedAnnotation] = time.Now().Format(time.RFC3339Nano)
 	if revisionNumber, err := strconv.ParseInt(obj.GetResourceVersion(), 10, 64); err == nil {
 		server.SetRevision(conf, revisionNumber, lastModifiedTime)
 	}
@@ -560,7 +564,7 @@ func (s *CRDValueStore[O, T]) appendSpecToHistory(obj O) error {
 	numEntries := len(history.Entries)
 	var err error
 	var numEncodedEntries int
-	annotations["opni.io/history"], numEncodedEntries, err = encodeHistory(&history)
+	annotations[HistoryAnnotation], numEncodedEntries, err = encodeHistory(&history)
 	if err != nil {
 		return err
 	}
@@ -574,7 +578,7 @@ func (s *CRDValueStore[O, T]) appendSpecToHistory(obj O) error {
 
 func (s *CRDValueStore[O, T]) readHistory(obj O, hist *historyFormat[T]) error {
 	annotations := obj.GetAnnotations()
-	if str, ok := annotations["opni.io/history"]; ok {
+	if str, ok := annotations[HistoryAnnotation]; ok {
 		decodeHistory(str, hist)
 	} else {
 		hist.Entries = []historyEntry[T]{}
@@ -585,7 +589,7 @@ func (s *CRDValueStore[O, T]) readHistory(obj O, hist *historyFormat[T]) error {
 	// fill in the revision of the current object
 	revisionNumber, _ := strconv.ParseInt(obj.GetResourceVersion(), 10, 64)
 	var lastModifiedTime time.Time
-	if lastModified, ok := annotations["opni.io/last-modified"]; ok {
+	if lastModified, ok := annotations[LastModifiedAnnotation]; ok {
 		lastModifiedTime, _ = time.Parse(time.RFC3339Nano, lastModified)
 	} else {
 		lastModifiedTime = obj.GetCreationTimestamp().Time
